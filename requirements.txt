@@ -1,0 +1,6 @@
+# API
+fastapi>=0.115,<1.0
+# Servidor ASGI (lo invoca el CMD del Dockerfile)
+uvicorn[standard]>=0.30,<1.0
+
+pydantic>=2.7,<3.0

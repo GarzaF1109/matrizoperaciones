@@ -1,0 +1,434 @@
+<!-- index.html -->
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Matriz de Operaciones</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --border: #d8dce3;
+    --text: #1b1f27;
+    --muted: #6b7280;
+    --accent: #2f6df6;
+    --accent-text: #ffffff;
+    --danger: #c0392b;
+    --ok-bg: #e7f6ec;
+    --ok-border: #9ed6b2;
+    --err-bg: #fdeaea;
+    --err-border: #e8a9a3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c;
+      --panel: #1c2027;
+      --border: #333a45;
+      --text: #e7eaf0;
+      --muted: #9aa3b2;
+      --accent: #4c85ff;
+      --danger: #ef6b5e;
+      --ok-bg: #16301f;
+      --ok-border: #2f6b45;
+      --err-bg: #331a18;
+      --err-border: #6e3630;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px 16px 60px;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 22px; }
+  section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 18px;
+  }
+  h2 { font-size: 15px; margin: 0 0 14px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 4px; }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 14px; }
+  input[type=text], input[type=number], select {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 9px;
+    font: inherit;
+    font-size: 14px;
+  }
+  input[type=number] { width: 78px; }
+  select { min-width: 190px; }
+  button {
+    background: var(--accent);
+    color: var(--accent-text);
+    border: 0;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(1.08); }
+  button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--border); }
+  button.danger { background: transparent; color: var(--danger); border: 1px solid var(--border); }
+  /* rejilla de celdas */
+  .grid { display: inline-grid; gap: 6px; margin-bottom: 14px; overflow-x: auto; max-width: 100%; }
+  .grid input {
+    width: 68px;
+    text-align: center;
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 7px 4px;
+    font: inherit;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  .grid input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  /* matriz de solo lectura */
+  .view { display: inline-grid; gap: 5px; }
+  .view span {
+    min-width: 64px;
+    text-align: right;
+    padding: 5px 9px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    font-variant-numeric: tabular-nums;
+    font-size: 14px;
+  }
+  .scroll { overflow-x: auto; max-width: 100%; padding-bottom: 4px; }
+  /* tarjetas del listado */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+  .card { border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+  .card h3 { margin: 0 0 2px; font-size: 15px; }
+  .card .meta { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+  .card .acts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+  .card .acts button { padding: 5px 9px; font-size: 13px; }
+  .out { margin-top: 14px; border-radius: 8px; padding: 12px 14px; border: 1px solid var(--border); background: var(--bg); }
+  .out.ok { background: var(--ok-bg); border-color: var(--ok-border); }
+  .out.err { background: var(--err-bg); border-color: var(--err-border); }
+  .out .title { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  .out .big { font-size: 22px; font-variant-numeric: tabular-nums; }
+  .empty { color: var(--muted); font-size: 14px; }
+  .hint { color: var(--muted); font-size: 12px; margin-top: -6px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Matriz de Operaciones</h1>
+  <div class="sub">Sin corchetes: escribe los números en las celdas.</div>
+
+  <!-- ============ CREAR / EDITAR ============ -->
+  <section>
+    <h2 id="editorTitulo">Crear matriz</h2>
+    <div class="row">
+      <div>
+        <label for="nombre">Nombre</label>
+        <input type="text" id="nombre" placeholder="Matriz A">
+      </div>
+      <div>
+        <label for="filas">Filas</label>
+        <input type="number" id="filas" min="1" max="10" value="2">
+      </div>
+      <div>
+        <label for="cols">Columnas</label>
+        <input type="number" id="cols" min="1" max="10" value="2">
+      </div>
+      <button class="ghost" onclick="limpiarCeldas()">Limpiar</button>
+    </div>
+    <div class="scroll"><div class="grid" id="editorGrid"></div></div>
+    <div class="row">
+      <button id="btnGuardar" onclick="guardar()">Crear matriz</button>
+      <button class="ghost" id="btnCancelar" onclick="salirDeEdicion()" style="display:none">Cancelar edición</button>
+    </div>
+    <div id="outEditor"></div>
+  </section>
+
+  <!-- ============ OPERACIONES ENTRE DOS ============ -->
+  <section>
+    <h2>Operaciones entre dos matrices</h2>
+    <div class="row">
+      <div>
+        <label for="op1">Primera</label>
+        <select id="op1"></select>
+      </div>
+      <div>
+        <label for="op2">Segunda</label>
+        <select id="op2"></select>
+      </div>
+      <button onclick="operar('sumar')">Sumar</button>
+      <button onclick="operar('multiplicar')">Multiplicar</button>
+    </div>
+    <div class="hint">Sumar: mismas dimensiones. Multiplicar: columnas de la primera = filas de la segunda.</div>
+    <div id="outOperacion"></div>
+  </section>
+
+  <!-- ============ LISTADO ============ -->
+  <section>
+    <h2>Matrices guardadas</h2>
+    <div class="row">
+      <button class="ghost" onclick="cargar()">Recargar</button>
+    </div>
+    <div class="cards" id="listado"></div>
+    <div id="outUnitaria"></div>
+  </section>
+
+</div>
+
+<script>
+let matrices = [];
+let editandoId = null;   // null = modo crear
+
+/* ---------- utilidades ---------- */
+
+// Convierte la respuesta de error de FastAPI en un texto legible.
+async function leerError(r) {
+  let cuerpo;
+  try { cuerpo = await r.json(); } catch { return `Error ${r.status}`; }
+  const d = cuerpo.detail;
+  if (typeof d === 'string') return d;
+  // 422 de pydantic: lista de objetos
+  if (Array.isArray(d)) return d.map(e => e.msg).join(' · ');
+  return `Error ${r.status}`;
+}
+
+function mostrar(destino, contenido, tipo) {
+  const el = document.getElementById(destino);
+  el.className = 'out ' + (tipo || '');
+  el.innerHTML = contenido;
+}
+
+function limpiar(destino) {
+  const el = document.getElementById(destino);
+  el.className = '';
+  el.innerHTML = '';
+}
+
+// Dibuja una matriz de solo lectura.
+function matrizHTML(datos) {
+  const cols = datos[0].length;
+  const celdas = datos.flat()
+    .map(n => `<span>${Number.isInteger(n) ? n : +n.toFixed(4)}</span>`)
+    .join('');
+  return `<div class="scroll"><div class="view" style="grid-template-columns: repeat(${cols}, auto)">${celdas}</div></div>`;
+}
+
+function dim(datos) {
+  return `${datos.length}×${datos[0].length}`;
+}
+
+/* ---------- editor de celdas ---------- */
+
+// Redibuja la rejilla conservando lo ya escrito.
+function construirGrid(valores) {
+  const filas = +document.getElementById('filas').value;
+  const cols = +document.getElementById('cols').value;
+  const grid = document.getElementById('editorGrid');
+  const previos = leerCeldas();
+
+  grid.style.gridTemplateColumns = `repeat(${cols}, auto)`;
+  grid.innerHTML = '';
+
+  for (let f = 0; f < filas; f++) {
+    for (let c = 0; c < cols; c++) {
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.step = 'any';
+      input.dataset.f = f;
+      input.dataset.c = c;
+      input.setAttribute('aria-label', `fila ${f + 1}, columna ${c + 1}`);
+      if (valores) {
+        input.value = valores[f]?.[c] ?? 0;
+      } else {
+        input.value = previos[f]?.[c] ?? 0;
+      }
+      grid.appendChild(input);
+    }
+  }
+}
+
+// Lee la rejilla como list[list[float]].
+function leerCeldas() {
+  const grid = document.getElementById('editorGrid');
+  const datos = [];
+  for (const input of grid.querySelectorAll('input')) {
+    const f = +input.dataset.f;
+    datos[f] = datos[f] || [];
+    datos[f][+input.dataset.c] = input.value === '' ? 0 : parseFloat(input.value);
+  }
+  return datos;
+}
+
+function limpiarCeldas() {
+  document.querySelectorAll('#editorGrid input').forEach(i => i.value = 0);
+}
+
+document.getElementById('filas').addEventListener('input', () => construirGrid());
+document.getElementById('cols').addEventListener('input', () => construirGrid());
+
+/* ---------- crear / editar ---------- */
+
+async function guardar() {
+  const nombre = document.getElementById('nombre').value.trim();
+  if (!nombre) {
+    mostrar('outEditor', 'Ponle un nombre a la matriz.', 'err');
+    return;
+  }
+
+  const body = JSON.stringify({ nombre, datos: leerCeldas() });
+  const editando = editandoId !== null;
+  const r = await fetch(editando ? `/matrices/${editandoId}` : '/matrices', {
+    method: editando ? 'PUT' : 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body
+  });
+
+  if (!r.ok) {
+    mostrar('outEditor', await leerError(r), 'err');
+    return;
+  }
+
+  const m = await r.json();
+  mostrar('outEditor', `Matriz <strong>${m.nombre}</strong> (id ${m.id}, ${dim(m.datos)}) ${editando ? 'actualizada' : 'creada'}.`, 'ok');
+  salirDeEdicion();
+  await cargar();
+}
+
+function editar(id) {
+  const m = matrices.find(x => x.id === id);
+  if (!m) return;
+
+  editandoId = id;
+  document.getElementById('editorTitulo').textContent = `Editando matriz ${m.id}`;
+  document.getElementById('btnGuardar').textContent = 'Guardar cambios';
+  document.getElementById('btnCancelar').style.display = '';
+  document.getElementById('nombre').value = m.nombre;
+  document.getElementById('filas').value = m.datos.length;
+  document.getElementById('cols').value = m.datos[0].length;
+  construirGrid(m.datos);
+  limpiar('outEditor');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function salirDeEdicion() {
+  editandoId = null;
+  document.getElementById('editorTitulo').textContent = 'Crear matriz';
+  document.getElementById('btnGuardar').textContent = 'Crear matriz';
+  document.getElementById('btnCancelar').style.display = 'none';
+  document.getElementById('nombre').value = '';
+}
+
+/* ---------- listado ---------- */
+
+async function cargar() {
+  const r = await fetch('/matrices');
+  matrices = await r.json();
+
+  const listado = document.getElementById('listado');
+  if (!matrices.length) {
+    listado.innerHTML = '<div class="empty">Todavía no hay matrices. Crea una arriba.</div>';
+  } else {
+    listado.innerHTML = matrices.map(m => `
+      <div class="card">
+        <h3>${m.nombre}</h3>
+        <div class="meta">id ${m.id} · ${dim(m.datos)}</div>
+        ${matrizHTML(m.datos)}
+        <div class="acts">
+          <button class="ghost" onclick="transponer(${m.id})">Transpuesta</button>
+          <button class="ghost" onclick="determinante(${m.id})">Determinante</button>
+          <button class="ghost" onclick="editar(${m.id})">Editar</button>
+          <button class="danger" onclick="eliminar(${m.id})">Eliminar</button>
+        </div>
+      </div>`).join('');
+  }
+
+  // Repuebla los selectores conservando la selección previa.
+  for (const sel of ['op1', 'op2']) {
+    const el = document.getElementById(sel);
+    const previo = el.value;
+    el.innerHTML = matrices.map(m =>
+      `<option value="${m.id}">${m.nombre} — ${dim(m.datos)} (id ${m.id})</option>`).join('');
+    if (matrices.some(m => String(m.id) === previo)) el.value = previo;
+  }
+}
+
+async function eliminar(id) {
+  if (!confirm(`¿Eliminar la matriz ${id}?`)) return;
+  const r = await fetch(`/matrices/${id}`, { method: 'DELETE' });
+  if (!r.ok) {
+    mostrar('outUnitaria', await leerError(r), 'err');
+    return;
+  }
+  if (editandoId === id) salirDeEdicion();
+  limpiar('outUnitaria');
+  await cargar();
+}
+
+/* ---------- operaciones ---------- */
+
+async function operar(op) {
+  const id1 = document.getElementById('op1').value;
+  const id2 = document.getElementById('op2').value;
+  if (!id1 || !id2) {
+    mostrar('outOperacion', 'Necesitas al menos dos matrices guardadas.', 'err');
+    return;
+  }
+
+  const r = await fetch(`/operaciones/${op}?id1=${id1}&id2=${id2}`, { method: 'POST' });
+  if (!r.ok) {
+    mostrar('outOperacion', await leerError(r), 'err');
+    return;
+  }
+
+  const { resultado } = await r.json();
+  const n1 = matrices.find(m => String(m.id) === id1).nombre;
+  const n2 = matrices.find(m => String(m.id) === id2).nombre;
+  const signo = op === 'sumar' ? '+' : '×';
+  mostrar('outOperacion',
+    `<div class="title">${n1} ${signo} ${n2} · ${dim(resultado)}</div>${matrizHTML(resultado)}`, 'ok');
+}
+
+async function transponer(id) {
+  const r = await fetch(`/matrices/${id}/transpuesta`);
+  if (!r.ok) {
+    mostrar('outUnitaria', await leerError(r), 'err');
+    return;
+  }
+  const { resultado } = await r.json();
+  const m = matrices.find(x => x.id === id);
+  mostrar('outUnitaria',
+    `<div class="title">Transpuesta de ${m.nombre} · ${dim(resultado)}</div>${matrizHTML(resultado)}`, 'ok');
+}
+
+async function determinante(id) {
+  const r = await fetch(`/matrices/${id}/determinante`);
+  if (!r.ok) {
+    mostrar('outUnitaria', await leerError(r), 'err');
+    return;
+  }
+  const { determinante: det } = await r.json();
+  const m = matrices.find(x => x.id === id);
+  // El calculo es por eliminacion gaussiana, asi que redondeamos el ruido flotante.
+  const limpio = Math.abs(det - Math.round(det)) < 1e-9 ? Math.round(det) : +det.toFixed(6);
+  mostrar('outUnitaria',
+    `<div class="title">Determinante de ${m.nombre}</div><div class="big">${limpio}</div>`, 'ok');
+}
+
+/* ---------- arranque ---------- */
+construirGrid();
+cargar();
+</script>
+</body>
+</html>
