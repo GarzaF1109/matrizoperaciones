@@ -216,6 +216,7 @@ sliderPuntos.addEventListener('input', () => {
 });
 sliderPuntos.addEventListener('change', () => {
   if (!cargando) cargarFrames(+sliderPuntos.value);
+  if (+sliderMorph.value > 0) pedirMorph(+sliderMorph.value);
 });
 
 cargarFrames(+sliderPuntos.value);
