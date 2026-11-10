@@ -39,6 +39,24 @@
   .fila label { font-size: 13px; color: var(--muted); min-width: 60px; }
   .fila output { font-variant-numeric: tabular-nums; min-width: 42px; text-align: right; }
   input[type=range] { flex: 1; accent-color: var(--accent); }
+  input[type=text] {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 5px 8px;
+    font: inherit;
+  }
+  button {
+    background: var(--accent);
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    padding: 6px 12px;
+    font: inherit;
+    cursor: pointer;
+  }
   .estado { font-size: 12px; color: var(--muted); margin-top: 6px; }
   .estado.err { color: #ef6b5e; }
 </style>
@@ -56,6 +74,18 @@
   </div>
   <div class="estado" id="estado">Calculando frames con la calculadora de matrices…</div>
   <div class="estado" id="conexion">Conectando…</div>
+
+  <div class="fila" style="margin-top: 14px;">
+    <label for="morph">Dona ↔ Taza</label>
+    <input type="range" id="morph" min="0" max="1" step="0.01" value="0">
+    <output id="morphValor">0.00</output>
+  </div>
+  <div class="fila">
+    <label for="nombreFigura">Nombre</label>
+    <input type="text" id="nombreFigura" placeholder="mi-figura">
+    <button id="guardarFigura" type="button">Guardar</button>
+  </div>
+  <div class="estado" id="figuraEstado"></div>
 </div>
 
 <script type="importmap">
@@ -69,6 +99,11 @@ const sliderPuntos = document.getElementById('puntos');
 const puntosValor = document.getElementById('puntosValor');
 const estado = document.getElementById('estado');
 const conexion = document.getElementById('conexion');
+const sliderMorph = document.getElementById('morph');
+const morphValor = document.getElementById('morphValor');
+const nombreFigura = document.getElementById('nombreFigura');
+const botonGuardar = document.getElementById('guardarFigura');
+const figuraEstado = document.getElementById('figuraEstado');
 
 const escena = new THREE.Scene();
 const camara = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 100);
@@ -137,10 +172,14 @@ function dibujarFrame(frame) {
   geometria.attributes.position.needsUpdate = true;
 }
 
+let morphFrame = null;
+
 let ultimoCambio = 0;
 function animar(t) {
   requestAnimationFrame(animar);
-  if (frames.length && t - ultimoCambio > 50) {
+  if (morphFrame) {
+    dibujarFrame(morphFrame);
+  } else if (frames.length && t - ultimoCambio > 50) {
     dibujarFrame(frames[frameActual]);
     frameActual = (frameActual + 1) % frames.length;
     ultimoCambio = t;
@@ -157,6 +196,70 @@ sliderPuntos.addEventListener('change', () => {
 });
 
 cargarFrames(+sliderPuntos.value);
+
+// --- Morph dona -> taza, vía WebSocket (la calculadora hace la interpolación) ---
+
+let wsMorph = null;
+let wsListo = false;
+
+function conectarMorph() {
+  const protocolo = location.protocol === 'https:' ? 'wss' : 'ws';
+  wsMorph = new WebSocket(`${protocolo}://${location.host}/view/morph`);
+  wsMorph.onopen = () => { wsListo = true; };
+  wsMorph.onclose = () => { wsListo = false; setTimeout(conectarMorph, 1000); };
+  wsMorph.onerror = () => { wsListo = false; };
+  wsMorph.onmessage = (evento) => {
+    const datos = JSON.parse(evento.data);
+    if (datos.error) {
+      marcarEstado(`No se pudo calcular el morph: ${datos.error}`, true);
+      return;
+    }
+    morphFrame = datos.vertices;
+  };
+}
+conectarMorph();
+
+function pedirMorph(t) {
+  if (t === 0) {
+    morphFrame = null;
+    return;
+  }
+  if (wsListo) {
+    wsMorph.send(JSON.stringify({ puntos: +sliderPuntos.value, t }));
+  }
+}
+
+let temporizadorMorph = null;
+sliderMorph.addEventListener('input', () => {
+  const t = +sliderMorph.value;
+  morphValor.textContent = t.toFixed(2);
+  clearTimeout(temporizadorMorph);
+  temporizadorMorph = setTimeout(() => pedirMorph(t), 60);
+});
+
+botonGuardar.addEventListener('click', async () => {
+  const nombre = nombreFigura.value.trim();
+  if (!nombre) return;
+  try {
+    const r = await fetch('/view/figuras', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, t: +sliderMorph.value, puntos: +sliderPuntos.value }),
+    });
+    if (!r.ok) {
+      let detalle = `Error ${r.status}`;
+      try {
+        const cuerpo = await r.json();
+        if (cuerpo.detail) detalle = cuerpo.detail;
+      } catch { /* respuesta sin cuerpo JSON */ }
+      throw new Error(detalle);
+    }
+    const figura = await r.json();
+    figuraEstado.textContent = `Guardada: "${figura.nombre}" (t=${figura.t.toFixed(2)})`;
+  } catch (e) {
+    figuraEstado.textContent = `No se pudo guardar: ${e.message}`;
+  }
+});
 </script>
 </body>
 </html>
