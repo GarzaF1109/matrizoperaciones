@@ -89,10 +89,16 @@
 </div>
 
 <script type="importmap">
-{ "imports": { "three": "https://unpkg.com/three@0.169.0/build/three.module.js" } }
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/"
+  }
+}
 </script>
 <script type="module">
 import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 const lienzo = document.getElementById('lienzo');
 const sliderPuntos = document.getElementById('puntos');
@@ -112,6 +118,14 @@ camara.position.set(0, 0, 9);
 const renderer = new THREE.WebGLRenderer({ canvas: lienzo, antialias: true });
 renderer.setPixelRatio(devicePixelRatio);
 renderer.setSize(innerWidth, innerHeight);
+
+// Controles de orbita: arrastrar para rotar la camara alrededor de la
+// figura, rueda para zoom. Asi se puede ver la taza desde el lado del asa.
+const controles = new OrbitControls(camara, renderer.domElement);
+controles.enableDamping = true;
+controles.dampingFactor = 0.08;
+controles.minDistance = 2;
+controles.maxDistance = 30;
 
 const geometria = new THREE.BufferGeometry();
 const material = new THREE.PointsMaterial({ color: 0x4c85ff, size: 0.06 });
@@ -192,6 +206,7 @@ function animar(t) {
       ultimoCambio = t;
     }
   }
+  controles.update();
   renderer.render(escena, camara);
 }
 requestAnimationFrame(animar);
