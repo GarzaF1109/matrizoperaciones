@@ -2,8 +2,8 @@ from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pathlib import Path
-from models import MatrixCreate, MatrixOut, TransformacionCreate
-from repository import MatrixRepository
+from models import MatrixCreate, MatrixOut, TransformacionCreate, FiguraCreate
+from repository import MatrixRepository, FiguraRepository
 import services
 
 app = FastAPI()
@@ -17,6 +17,7 @@ app.add_middleware(
 )
 
 repo = MatrixRepository()
+figuras = FiguraRepository()
 
 
 INDEX = Path(__file__).parent / "index.html"
@@ -121,6 +122,38 @@ def matriz_homogenea(payload: TransformacionCreate):
             payload.rx, payload.ry, payload.rz,
         )
     }
+
+
+@app.post("/operaciones/interpolar")
+def interpolar_matrices(id1: int, id2: int, t: float):
+    m1, m2 = repo.obtener(id1), repo.obtener(id2)
+
+    if not m1 or not m2:
+        raise HTTPException(404, "matriz no encontrada")
+
+    if not 0 <= t <= 1:
+        raise HTTPException(400, "t debe estar entre 0 y 1")
+
+    try:
+        return {"resultado": services.interpolar(m1["datos"], m2["datos"], t)}
+
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/figuras")
+def guardar_figura(payload: FiguraCreate):
+    return figuras.guardar(payload.model_dump())
+
+
+@app.get("/figuras/{nombre}")
+def obtener_figura(nombre: str):
+    figura = figuras.obtener(nombre)
+
+    if not figura:
+        raise HTTPException(404, "figura no encontrada")
+
+    return figura
 
 
 @app.get("/matrices/{id}/determinante")

@@ -43,6 +43,15 @@ def determinante(m: list[list[float]]) -> float:
     return det
 
 
+def interpolar(m1: list[list[float]], m2: list[list[float]], t: float) -> list[list[float]]:
+    if len(m1) != len(m2) or len(m1[0]) != len(m2[0]):
+        raise ValueError("las matrices deben tener la misma dimensión")
+    return [
+        [(1 - t) * a + t * b for a, b in zip(fila1, fila2)]
+        for fila1, fila2 in zip(m1, m2)
+    ]
+
+
 def _mat_mult(m1: list[list[float]], m2: list[list[float]]) -> list[list[float]]:
     return [[sum(a * b for a, b in zip(fila, col)) for col in zip(*m2)] for fila in m1]
 
