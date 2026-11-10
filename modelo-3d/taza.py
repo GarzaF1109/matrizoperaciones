@@ -11,14 +11,20 @@ def generar_puntos_taza(puntos: int) -> list[list[float]]:
 
     Es una deformación continua de la misma superficie toroidal: el radio
     central y el grosor del "tubo" varían con phi en vez de ser constantes.
-    Para la mayoría de phi el tubo es grueso y el radio central casi cero
-    (cuerpo de la taza); en un arco angosto alrededor de centro_asa el radio
-    central crece y el tubo se adelgaza (el asa).
+
+    Para la mayoría de phi, el radio central es exactamente 0: con R=0 la
+    formula del toro colapsa en la de un elipsoide (cuerpo solido de la
+    taza, sin autointersecciones). En un arco angosto alrededor de
+    centro_asa, el radio central crece bastante por encima del grosor del
+    tubo (R >> r), formando un aro normal separado del cuerpo (el asa). Un
+    radio central intermedio (ni ~0 ni >> r) autointersecta el "tubo" y se
+    ve como una flor/espiral, por eso la transición evita quedarse ahi
+    mucho tiempo (smoothstep rapido, controlado por ancho_asa).
     """
     lado = max(4, round(math.sqrt(puntos)))
 
     centro_asa = math.pi
-    ancho_asa = 0.9
+    ancho_asa = 0.5
 
     coords = []
     for i in range(lado):
@@ -30,9 +36,9 @@ def generar_puntos_taza(puntos: int) -> list[list[float]]:
             s = max(0.0, 1 - distancia_al_asa / ancho_asa)
             s = s * s * (3 - 2 * s)  # smoothstep: transición continua cuerpo -> asa
 
-            radio_centro = 0.35 * (1 - s) + 1.7 * s
-            radio_xy = 1.3 * (1 - s) + 0.3 * s
-            radio_z = 1.1 * (1 - s) + 0.3 * s
+            radio_centro = 1.9 * s          # 0 en el cuerpo, aro real en el asa
+            radio_xy = 1.4 * (1 - s) + 0.3 * s
+            radio_z = 1.25 * (1 - s) + 0.3 * s
 
             radio = radio_centro + radio_xy * math.cos(theta)
             coords.append([
