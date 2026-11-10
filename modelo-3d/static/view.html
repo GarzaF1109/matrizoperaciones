@@ -1,0 +1,162 @@
+<!-- view.html -->
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Donut 3D</title>
+<style>
+  :root {
+    --bg: #14171c;
+    --panel: #1c2027;
+    --border: #333a45;
+    --text: #e7eaf0;
+    --muted: #9aa3b2;
+    --accent: #4c85ff;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    overflow: hidden;
+  }
+  #lienzo { position: fixed; inset: 0; }
+  .panel {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    min-width: 260px;
+  }
+  .panel h1 { font-size: 15px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .fila { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .fila label { font-size: 13px; color: var(--muted); min-width: 60px; }
+  .fila output { font-variant-numeric: tabular-nums; min-width: 42px; text-align: right; }
+  input[type=range] { flex: 1; accent-color: var(--accent); }
+  .estado { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .estado.err { color: #ef6b5e; }
+</style>
+</head>
+<body>
+
+<canvas id="lienzo"></canvas>
+
+<div class="panel">
+  <h1>Donut 3D &middot; matriz de operaciones</h1>
+  <div class="fila">
+    <label for="puntos">Puntos</label>
+    <input type="range" id="puntos" min="64" max="4000" step="16" value="800">
+    <output id="puntosValor">800</output>
+  </div>
+  <div class="estado" id="estado">Calculando frames con la calculadora de matrices…</div>
+  <div class="estado" id="conexion">Conectando…</div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.169.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from "three";
+
+const lienzo = document.getElementById('lienzo');
+const sliderPuntos = document.getElementById('puntos');
+const puntosValor = document.getElementById('puntosValor');
+const estado = document.getElementById('estado');
+const conexion = document.getElementById('conexion');
+
+const escena = new THREE.Scene();
+const camara = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 100);
+camara.position.set(0, 0, 9);
+
+const renderer = new THREE.WebGLRenderer({ canvas: lienzo, antialias: true });
+renderer.setPixelRatio(devicePixelRatio);
+renderer.setSize(innerWidth, innerHeight);
+
+const geometria = new THREE.BufferGeometry();
+const material = new THREE.PointsMaterial({ color: 0x4c85ff, size: 0.06 });
+let puntosObj = new THREE.Points(geometria, material);
+escena.add(puntosObj);
+
+addEventListener('resize', () => {
+  camara.aspect = innerWidth / innerHeight;
+  camara.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+let frames = [];
+let frameActual = 0;
+let cargando = false;
+
+function marcarEstado(texto, esError) {
+  estado.textContent = texto;
+  estado.className = 'estado' + (esError ? ' err' : '');
+}
+
+async function cargarFrames(puntos) {
+  cargando = true;
+  marcarEstado(`Calculando ${puntos} puntos con la calculadora de matrices…`);
+  try {
+    const r = await fetch(`/view/frames?puntos=${puntos}`);
+    if (!r.ok) {
+      let detalle = `Error ${r.status}`;
+      try {
+        const cuerpo = await r.json();
+        if (cuerpo.detail) detalle = cuerpo.detail;
+      } catch { /* respuesta sin cuerpo JSON */ }
+      throw new Error(detalle);
+    }
+    const datos = await r.json();
+    frames = datos.frames;
+    frameActual = 0;
+    marcarEstado(`${frames.length} frames listos · ${datos.puntos} puntos`);
+    conexion.textContent = 'Conectado';
+    conexion.className = 'estado';
+  } catch (e) {
+    marcarEstado(`No se pudo calcular: ${e.message}`, true);
+    conexion.textContent = e.message;
+    conexion.className = 'estado err';
+  } finally {
+    cargando = false;
+  }
+}
+
+function dibujarFrame(frame) {
+  const posiciones = new Float32Array(frame.length * 3);
+  frame.forEach(([x, y, z], i) => {
+    posiciones[i * 3] = x;
+    posiciones[i * 3 + 1] = y;
+    posiciones[i * 3 + 2] = z;
+  });
+  geometria.setAttribute('position', new THREE.BufferAttribute(posiciones, 3));
+  geometria.attributes.position.needsUpdate = true;
+}
+
+let ultimoCambio = 0;
+function animar(t) {
+  requestAnimationFrame(animar);
+  if (frames.length && t - ultimoCambio > 50) {
+    dibujarFrame(frames[frameActual]);
+    frameActual = (frameActual + 1) % frames.length;
+    ultimoCambio = t;
+  }
+  renderer.render(escena, camara);
+}
+requestAnimationFrame(animar);
+
+sliderPuntos.addEventListener('input', () => {
+  puntosValor.textContent = sliderPuntos.value;
+});
+sliderPuntos.addEventListener('change', () => {
+  if (!cargando) cargarFrames(+sliderPuntos.value);
+});
+
+cargarFrames(+sliderPuntos.value);
+</script>
+</body>
+</html>

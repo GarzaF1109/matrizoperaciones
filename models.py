@@ -14,3 +14,11 @@ class MatrixCreate(BaseModel):
 
 class MatrixOut(MatrixCreate):
     id: int
+
+class TransformacionCreate(BaseModel):
+    tx: float = 0
+    ty: float = 0
+    tz: float = 0
+    rx: float = 0
+    ry: float = 0
+    rz: float = 0

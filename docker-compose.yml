@@ -1,8 +1,27 @@
 # docker-compose.yaml
 services:
-  api:
+  calculadora:
     build: .
     ports:
+      - "8001:8000"
+    volumes:
+      - .:/app
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  visor:
+    build:
+      context: .
+      dockerfile: modelo-3d/Dockerfile
+    ports:
       - "8000:8000"
+    environment:
+      - CALCULADORA_URL=http://calculadora:8000
+    depends_on:
+      - calculadora
     volumes:
       - .:/app

@@ -4,3 +4,11 @@ fastapi>=0.115,<1.0
 uvicorn[standard]>=0.30,<1.0
 
 pydantic>=2.7,<3.0
+
+# Automatización de navegador
+playwright>=1.64,<2.0
+pytest>=8.0,<9.0
+pytest-playwright>=0.5,<1.0
+
+# Cliente HTTP usado por el visor 3D para hablar con la calculadora
+httpx>=0.27,<1.0

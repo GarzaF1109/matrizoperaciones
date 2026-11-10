@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pathlib import Path
-from models import MatrixCreate, MatrixOut
+from models import MatrixCreate, MatrixOut, TransformacionCreate
 from repository import MatrixRepository
 import services
 
@@ -111,6 +111,16 @@ def transponer_matriz(id: int):
         raise HTTPException(404, "matriz no encontrada")
 
     return {"resultado": services.transponer(matriz["datos"])}
+
+
+@app.post("/transformaciones/matriz")
+def matriz_homogenea(payload: TransformacionCreate):
+    return {
+        "resultado": services.matriz_homogenea(
+            payload.tx, payload.ty, payload.tz,
+            payload.rx, payload.ry, payload.rz,
+        )
+    }
 
 
 @app.get("/matrices/{id}/determinante")
