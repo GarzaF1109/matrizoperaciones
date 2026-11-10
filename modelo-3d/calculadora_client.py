@@ -42,3 +42,39 @@ def rotar_puntos(cliente: httpx.Client, rotacion: list[list[float]], puntos: lis
         eliminar(cliente, id_rot)
         eliminar(cliente, id_pts)
     return [list(fila) for fila in zip(*resultado)]  # vuelve a Nx3
+
+
+def interpolar(cliente: httpx.Client, id1: int, id2: int, t: float) -> list[list[float]]:
+    r = cliente.post(f"{CALCULADORA_URL}/operaciones/interpolar", params={"id1": id1, "id2": id2, "t": t})
+    r.raise_for_status()
+    return r.json()["resultado"]
+
+
+def morph_puntos(
+    cliente: httpx.Client,
+    puntos_a: list[list[float]],
+    puntos_b: list[list[float]],
+    t: float,
+) -> list[list[float]]:
+    """Interpola punto a punto entre dos nubes con la misma cantidad de vértices, via la calculadora."""
+    id_a = crear_matriz(cliente, "morph_a", puntos_a)
+    id_b = crear_matriz(cliente, "morph_b", puntos_b)
+    try:
+        return interpolar(cliente, id_a, id_b, t)
+    finally:
+        eliminar(cliente, id_a)
+        eliminar(cliente, id_b)
+
+
+def guardar_figura(cliente: httpx.Client, nombre: str, t: float, puntos: int) -> dict:
+    r = cliente.post(f"{CALCULADORA_URL}/figuras", json={"nombre": nombre, "t": t, "puntos": puntos})
+    r.raise_for_status()
+    return r.json()
+
+
+def obtener_figura(cliente: httpx.Client, nombre: str) -> dict | None:
+    r = cliente.get(f"{CALCULADORA_URL}/figuras/{nombre}")
+    if r.status_code == 404:
+        return None
+    r.raise_for_status()
+    return r.json()
