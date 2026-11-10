@@ -25,3 +25,17 @@ class MatrixRepository:
 
     def eliminar(self, id: int) -> bool:
         return self._data.pop(id, None) is not None
+
+
+class FiguraRepository:
+    """Guarda figuras (morph dona-taza) identificadas por nombre, para consultarlas después."""
+
+    def __init__(self):
+        self._data: dict[str, dict] = {}
+
+    def guardar(self, figura: dict) -> dict:
+        self._data[figura["nombre"]] = figura
+        return figura
+
+    def obtener(self, nombre: str) -> dict | None:
+        return self._data.get(nombre)
