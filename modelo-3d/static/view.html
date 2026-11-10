@@ -178,11 +178,19 @@ let ultimoCambio = 0;
 function animar(t) {
   requestAnimationFrame(animar);
   if (morphFrame) {
+    // La dona (frames[]) ya viene rotada por la calculadora; la figura del
+    // morph es una nube estatica, asi que aqui giramos el objeto de Three.js
+    // directamente para que no se quede congelada mientras se ve la taza.
     dibujarFrame(morphFrame);
-  } else if (frames.length && t - ultimoCambio > 50) {
-    dibujarFrame(frames[frameActual]);
-    frameActual = (frameActual + 1) % frames.length;
-    ultimoCambio = t;
+    puntosObj.rotation.y += 0.012;
+    puntosObj.rotation.x += 0.005;
+  } else {
+    puntosObj.rotation.set(0, 0, 0);
+    if (frames.length && t - ultimoCambio > 50) {
+      dibujarFrame(frames[frameActual]);
+      frameActual = (frameActual + 1) % frames.length;
+      ultimoCambio = t;
+    }
   }
   renderer.render(escena, camara);
 }
