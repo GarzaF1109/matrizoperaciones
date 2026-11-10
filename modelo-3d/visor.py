@@ -34,7 +34,7 @@ def ver():
 
 
 @app.get("/view/frames")
-def frames(puntos: int = Query(800, ge=16, le=5000)):
+def frames(puntos: int = Query(800, ge=16, le=10000)):
     try:
         return {"puntos": puntos, "frames": obtener_frames(puntos)}
     except httpx.RequestError:
@@ -73,7 +73,7 @@ async def morph_ws(socket: WebSocket):
         while True:
             peticion = await socket.receive_json()
             try:
-                puntos = min(5000, max(16, int(peticion.get("puntos", 800))))
+                puntos = min(10000, max(16, int(peticion.get("puntos", 800))))
                 t = min(1.0, max(0.0, float(peticion.get("t", 0.0))))
                 vertices = calcular_morph(puntos, t)
                 await socket.send_json({"t": t, "puntos": puntos, "vertices": vertices})

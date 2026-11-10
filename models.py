@@ -38,6 +38,6 @@ class FiguraCreate(BaseModel):
     @field_validator("puntos")
     @classmethod
     def puntos_en_rango(cls, v):
-        if not 16 <= v <= 5000:
-            raise ValueError("puntos debe estar entre 16 y 5000")
+        if not 16 <= v <= 10000:
+            raise ValueError("puntos debe estar entre 16 y 10000")
         return v
